@@ -2,8 +2,10 @@
 /*** Includes ***/
 #include <ncurses.h>
 #include <stdio.h>
+#include <time.h>
 #include <stdlib.h>
 #include <limits.h>
+//#include <iostream>
 
 /*** Defines ***/
 #define TICKRATE 100
@@ -27,12 +29,13 @@ typedef struct weapon{
 	int active;
 } bullet;
 
-
 typedef struct enemy{
 	int x;
 	int y;
 	char ship;
 	int health;
+	bullet *firstBullet;
+	bullet *lastBullet;
 } commonEnemy;
 
 typedef struct user{
@@ -43,12 +46,18 @@ typedef struct user{
 	bullet *lastBullet;
 } player;
 
+typedef struct eFire{
+	bullet *firstBullet;
+	bullet *lastBullet;
+} alienFire;
+
 /*** Globals ***/
 static int WORLD_WIDTH = 50;
 static int WORLD_HEIGHT = 20;
 static int numberOfEnemies = 5;
 static commonEnemy invaders[];
 static int once = 1;
+static alienFire *enemyFire;// = malloc(sizeof(struct weapon));
 
 /*** Prototypes ***/
 int move_player(WINDOW *win, int userInput, player *p);
@@ -113,6 +122,10 @@ int main(int argc, char *argv[])
 	p1.ship = '#';
 	p1.firstBullet = 0;
 	p1.lastBullet = 0;
+
+	enemyFire = malloc(sizeof(struct eFire));
+	enemyFire->firstBullet = 0;
+	enemyFire->lastBullet = 0;
 		
 	int ship_command = DO_NOTHING;
 	while((input = getch()) != 'x'){
@@ -229,13 +242,85 @@ void drawPlayer(WINDOW *win, player *p)
 	wmove(win, p->y, p->x);
 }
 
+void updateEnemyFire(WINDOW *win){
+	if (enemyFire->firstBullet != 0)
+	{
+		
+		struct weapon *node;
+		struct weapon *freeThis;
+		node = enemyFire->firstBullet;
+		//	Free all the memory of bullets untill we find a bullet 
+		//	that is still active. 
+		while ((node->y <= 0)){
+			if (node->nextBullet == 0){
+				free(node);
+				enemyFire->firstBullet = 0;
+				break;
+			}
+
+			enemyFire->firstBullet = node->nextBullet;
+			freeThis = node;
+			node = node->nextBullet;
+			free(freeThis);
+		}
+		
+		//	Update the remaining bullets;
+		while(node){
+			node->y += 1; 
+			mvwaddch(win, node->y, node->x, node->bulletChar);
+			node = node->nextBullet;
+		}
+		
+	}
+
+}
+
+void invaderFire(int index){
+
+	struct weapon *newbullet;
+	newbullet = malloc(sizeof(struct weapon));
+	newbullet->x = invaders[index].x;
+	newbullet->y = invaders[index].y+1;
+	newbullet->bulletChar = '|';
+	newbullet->active = TRUE;
+
+	newbullet->nextBullet = 0;
+
+
+	//enemyFire->firstBullet = newbullet;
+	
+	
+	if (enemyFire->firstBullet == 0){
+		//	If there are no other bullets currently being tracked, set 
+		//	this bullet to be the first and the last bullet.
+		enemyFire->firstBullet = newbullet;
+		enemyFire->lastBullet = newbullet;
+	}
+	else {
+		//	If there is another bullet being tracked, update the last
+		//	bullet to be this new bullet. 
+		enemyFire->lastBullet->nextBullet = newbullet;
+		enemyFire->lastBullet = newbullet;
+	}
+	
+}
+
 void drawInvaders(WINDOW *win)
 {
 	int dead = -3;
-	for(int i = 0; i < 5; ++i){
+	srand(time(NULL));
+	int r = rand() % numberOfEnemies;
+	
+	for(int i = 0; i < numberOfEnemies; ++i){
 		if (invaders[i].health > 0){
 			mvwaddch(win, invaders[i].y, invaders[i].x, invaders[i].ship);
 			mvwaddch(win, invaders[i].y-1, invaders[i].x, '_');
+
+			// should i fire?
+			if (i == r){
+				invaderFire(i);
+			}
+
 		}
 		else if (invaders[i].health > dead){
 			if (invaders[i].health == 0){
@@ -312,6 +397,9 @@ void updateWorld(WINDOW *win, int userInput, player* p){
 
 	// draw enemies
 	drawInvaders(win);
+
+	// update enemy fire
+	updateEnemyFire(win);
 
 	// update the players location
 	move_player(win, userInput, p);
