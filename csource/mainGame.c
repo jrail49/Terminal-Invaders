@@ -42,18 +42,13 @@ int main(int argc, char *argv[])
  	*/
     WINDOW *snakeys_world;
     int offsetx, offsety;
-    /*** NEW CODE ***/
     int i, ch;
-    /*** END OF NEW CODE ***/
  
  	// Prepare the terminal for curses mode, allocates memory for 
  	// stdscr.
     initscr();
-
-    /*** NEW ***/
-    initscr();
     noecho();	/* 	Preven the terminal from printing user Input 	*/
-    cbreak();	/*	Disables line buggering and feeds input directly 
+    cbreak();	/*	Disables line buffering and feeds input directly 
     				to the program. This makes the character input 
     				respond immediately and not wait untill a new 
     				line is entered.	*/
