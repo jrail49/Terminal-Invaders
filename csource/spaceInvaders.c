@@ -3,15 +3,12 @@
 #include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 /*** Defines ***/
 #define TICKRATE 100
 #define TRUE 1
 #define FALSE 0
-
-/*** Globals ***/
-static int WORLD_WIDTH = 50;
-static int WORLD_HEIGHT = 20;
 
 /*** Enums ***/
 enum userInput {
@@ -31,11 +28,11 @@ typedef struct weapon{
 } bullet;
 
 
-typedef struct cEnemy{
+typedef struct enemy{
 	int x;
 	int y;
 	char ship;
-	bullet attacks[];
+	int health;
 } commonEnemy;
 
 typedef struct user{
@@ -46,14 +43,20 @@ typedef struct user{
 	bullet *lastBullet;
 } player;
 
+/*** Globals ***/
+static int WORLD_WIDTH = 50;
+static int WORLD_HEIGHT = 20;
+static int numberOfEnemies = 5;
+static commonEnemy invaders[];
+static int once = 1;
 
 /*** Prototypes ***/
 int move_player(WINDOW *win, int userInput, player *p);
 int updateInvaders(WINDOW *win, commonEnemy invaders[]);
 void drawPlayer(WINDOW *win, player *p);
-void drawInvaders(WINDOW *win, commonEnemy invaders[]);
+void drawInvaders(WINDOW *win);
 void updateWorld(WINDOW *win, int userInput, player *p);
-void createEnemies(const int numberOfEnemies, commonEnemy *invaders);
+void createEnemies(const int numberOfEnemies);
 void fire(player *p);
 
 /**
@@ -207,7 +210,7 @@ void drawPlayer(WINDOW *win, player *p)
 				p->firstBullet = 0;
 				break;
 			}
-			
+
 			p->firstBullet = node->nextBullet;
 			freeThis = node;
 			node = node->nextBullet;
@@ -224,32 +227,87 @@ void drawPlayer(WINDOW *win, player *p)
 	}
 
 	wmove(win, p->y, p->x);
-
-	//mvwaddch(win, p->y, p->x, p->ship);
 }
 
-void drawInvaders(WINDOW *win, commonEnemy invaders[])
+void drawInvaders(WINDOW *win)
 {
 	for(int i = 0; i < 5; ++i){
-		mvwaddch(win, invaders[i].y, invaders[i].x, invaders[i].ship);
+		if (invaders[i].health > 0){
+			mvwaddch(win, invaders[i].y, invaders[i].x, invaders[i].ship);
+		}
+		else if (invaders[i].health != INT_MIN){
+		
+			if (invaders[i].health == 0){
+				mvwaddch(win, invaders[i].y, invaders[i].x, 'v');
+			}
+			else if (invaders[i].health >= -1){
+	 			mvwaddch(win, invaders[i].y, invaders[i].x, '#');
+			}
+			else if (invaders[i].health >= -2){
+				mvwaddch(win, invaders[i].y, invaders[i].x, '+');
+			}
+			else if (invaders[i].health >= -3){
+				mvwaddch(win, invaders[i].y, invaders[i].x, '-');
+			}
+			else if (invaders[i].health < -3){
+				invaders[i].health = INT_MIN;
+			}	
+			// update invader death state
+			invaders[i].health--;
+		}
 	}
 }
 
-void updateWorld(WINDOW *win, int userInput, player* p){
-	static int once = 1;
-	static const int numberOfEnemies = 5;
-	static commonEnemy invaders[numberOfEnemies];
-	
+void updateInvaderCharAtIndex(int index){
+	if (invaders[index].health >= 2){
+		invaders[index].ship = 'V';
+	}
+	else if (invaders[index].health == 1){
+		invaders[index].ship = 'v';
+	}
+	/*else if (invaders[index].health == 0){
+		invaders[index].ship = ' ';
+	}*/
+	else{
+		invaders[index].ship = ' ';
+	}
+}
+
+void updateWorld(WINDOW *win, int userInput, player* p){	
 	if (once){
-		createEnemies(numberOfEnemies, invaders);
+		createEnemies(numberOfEnemies);
 		once = 0;
 	}
 
 	// clear the child window
 	wclear(win);
 
+	// remove all enemies that have been hit
+	if (p->firstBullet){
+		struct weapon *node;
+		struct enemy targetEnemy;
+		struct enemy deadEnemy;
+		node = p->firstBullet;
+		while(node){
+			for (int i = 0; i < numberOfEnemies; ++i){
+				if (invaders[i].health){
+					if (invaders[i].y == node->y){
+						if (invaders[i].x == node->x){
+							//	Enemy has been hit. Remove it from the 
+							//	invaders array. 
+							invaders[i].health -= 1;
+
+							updateInvaderCharAtIndex(i);
+						}
+					}
+				}
+			}
+			node = node->nextBullet;
+		}
+	}
+
 	// draw enemies
-	drawInvaders(win, invaders);
+	drawInvaders(win);
 
 	// update the players location
 	move_player(win, userInput, p);
@@ -261,16 +319,17 @@ void updateWorld(WINDOW *win, int userInput, player* p){
 	wrefresh(win);
 }
 
-void createEnemies(const int numberOfEnemies, commonEnemy invaders[]){
+void createEnemies(const int numberOfEnemies){
 	//commonEnemy invaders[numberOfEnemies];
 
 	int xbuf = WORLD_WIDTH/(numberOfEnemies+1);
 
 	for(int i = 0; i < numberOfEnemies; ++i){
-		commonEnemy newInvader;
+		struct enemy newInvader;
 		newInvader.x = xbuf + xbuf*i;
 		newInvader.y = 3;
 		newInvader.ship = 'V';
+		newInvader.health = 2;
 		invaders[i] = newInvader;
 	}
 
