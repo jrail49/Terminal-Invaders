@@ -231,12 +231,13 @@ void drawPlayer(WINDOW *win, player *p)
 
 void drawInvaders(WINDOW *win)
 {
+	int dead = -3;
 	for(int i = 0; i < 5; ++i){
 		if (invaders[i].health > 0){
 			mvwaddch(win, invaders[i].y, invaders[i].x, invaders[i].ship);
+			mvwaddch(win, invaders[i].y-1, invaders[i].x, '_');
 		}
-		else if (invaders[i].health != INT_MIN){
-		
+		else if (invaders[i].health > dead){
 			if (invaders[i].health == 0){
 				mvwaddch(win, invaders[i].y, invaders[i].x, 'v');
 			}
@@ -246,10 +247,10 @@ void drawInvaders(WINDOW *win)
 			else if (invaders[i].health >= -2){
 				mvwaddch(win, invaders[i].y, invaders[i].x, '+');
 			}
-			else if (invaders[i].health >= -3){
+			else if (invaders[i].health >= dead){
 				mvwaddch(win, invaders[i].y, invaders[i].x, '-');
 			}
-			else if (invaders[i].health < -3){
+			else if (invaders[i].health < dead){
 				invaders[i].health = INT_MIN;
 			}	
 			// update invader death state
@@ -268,8 +269,11 @@ void updateInvaderCharAtIndex(int index){
 	/*else if (invaders[index].health == 0){
 		invaders[index].ship = ' ';
 	}*/
-	else{
+	else if (invaders[index].health == INT_MIN){
 		invaders[index].ship = ' ';
+	}
+	else {
+		invaders[index].ship = '?';	
 	}
 }
 
@@ -290,7 +294,7 @@ void updateWorld(WINDOW *win, int userInput, player* p){
 		node = p->firstBullet;
 		while(node){
 			for (int i = 0; i < numberOfEnemies; ++i){
-				if (invaders[i].health){
+				if (invaders[i].health > 0){
 					if (invaders[i].y == node->y){
 						if (invaders[i].x == node->x){
 							//	Enemy has been hit. Remove it from the 
