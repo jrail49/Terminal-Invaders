@@ -1,13 +1,9 @@
 // gcc -lncurses -o pocs main.c
 
- /***************\
-/*** #INCLUDES ***\
-\*****************/
+/*** #INCLUDES ***/
 #include <ncurses.h>
 
- /**************\
-/*** #DEFINES ***\
-\****************/
+/*** #DEFINES ***/
 #define TICKRATE 100
 
 #define WORLD_WIDTH 50
@@ -15,9 +11,8 @@
  
 #define SNAKEY_LENGTH 40
 
- /***********\
-/*** ENUMS ***\
-\*************/
+
+/*** ENUMS ***/
 enum direction {
 	UP,
 	DOWN,
@@ -25,23 +20,16 @@ enum direction {
 	LEFT
 };
 
- /*************\
-/*** STRUCTS ***\
-\***************/
+/*** STRUCTS ***/
 typedef struct spart {
 	int x;
 	int y;
 } snakeypart;
 
-
- /****************\
-/*** PROTOTYPES ***\
-\******************/
+/*** PROTOTYPES ***/
 int move_snakey(WINDOW *win, int direction, snakeypart snakey[]);
 
- /***************\
-/*** FUNCTIONS ***\
-\*****************/
+/*** FUNCTIONS ***/
 //////////////////////////////////////////////////////////////////////
 // main
 int main(int argc, char *argv[]) 
@@ -65,7 +53,7 @@ int main(int argc, char *argv[])
     initscr();
     noecho();
     cbreak();
-    timoeut(TICKRATE);
+    timeout(TICKRATE);
     keypad(stdscr, TRUE);
 
     printw("PieceOfCakeSnake v. 1.0 - Press x to quit...");	// display text at top of screen.
@@ -146,9 +134,47 @@ int main(int argc, char *argv[])
 // move_snakey
 // Input:
 // Output:
-int move_snakey(WINDOW *won, int direction, snakeypart snakey[])
+// Comments:
+// This entire function is all "NEW CODE".
+int move_snakey(WINDOW *win, int direction, snakeypart snakey[])
 {
+	// clear the window
+	wclear(win);
 
+	for (int i = 0; i < SNAKEY_LENGTH - 1; ++i){
+		snakey[i] = snakey[i + 1];
+		mvwaddch(win, snakey[i].y, snakey[i].x, '#');	// put a '#' in the win at location x,y
+	}
+
+	int x = snakey[SNAKEY_LENGTH - 1].x;
+	int y = snakey[SNAKEY_LENGTH - 1].y;
+	switch (direction) {
+		case UP:
+			y - 1 == 0 ? WORLD_HEIGHT - 2 : --y;
+			break;
+		case DOWN:
+			y + 1 == WORLD_HEIGHT - 1 ? y = 1 : ++y;
+			break;
+		case RIGHT:
+			x + 1 == WORLD_WIDTH - 1 ? x = 1 : ++x;
+			break;
+		case LEFT:
+			x - 1 == 0 ? x = WORLD_WIDTH - 2 : --x;
+			break;
+		default:
+			break;
+	}
+
+	snakey[SNAKEY_LENGTH - 1].x = x;
+	snakey[SNAKEY_LENGTH - 1].y = y;
+
+	mvwaddch(win, y, x, '#');
+
+	box(win, 0, 0);
+
+	wrefresh(win);
+
+	return 0;
 }
 
 
