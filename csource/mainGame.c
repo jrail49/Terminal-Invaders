@@ -28,6 +28,7 @@ typedef struct spart {
 
 /*** PROTOTYPES ***/
 int move_snakey(WINDOW *win, int direction, snakeypart snakey[]);
+char nextSpartDir(snakeypart current, snakeypart next);
 
 /*** FUNCTIONS ***/
 //////////////////////////////////////////////////////////////////////
@@ -85,9 +86,8 @@ int main(int argc, char *argv[])
                            offsetx);		// width buffer
     box(snakeys_world, 0 , 0);				// draw the box
  
-    /*** NEW CODE ***/
-    snakeypart snakey[SNAKEY_LENGTH];
 
+    snakeypart snakey[SNAKEY_LENGTH];
     int sbegx = (WORLD_WIDTH - SNAKEY_LENGTH) / 2;
     int sbegy = (WORLD_HEIGHT - 1) / 2;
 
@@ -121,16 +121,7 @@ int main(int argc, char *argv[])
     		}
     	}
     }
-    /*** END OF NEW CODE ***/
-
-/*** Removed ***
-    wrefresh(snakeys_world);	// Same as refresh() but only works on
-    							// child windows. 
- 
- 	// pause program until until keyboard input is received. 
-    getch();
-*** End of Removal ***/
-
+ 	
  	// memory deallocation and returns the terminal to it's former 
  	// state
     delwin(snakeys_world);
@@ -151,11 +142,18 @@ int move_snakey(WINDOW *win, int direction, snakeypart snakey[])
 	// Clear child windows
 	wclear(win);
 
+
+	// draw the snake from tail to head. 
 	for (int i = 0; i < SNAKEY_LENGTH - 1; ++i){
+
+		// direction of next segment
+		char ch = nextSpartDir(snakey[i], snakey[i+1]);
+
 		snakey[i] = snakey[i + 1];
 		//	Move the curser to y,x in the window win and add the 
 		//	character '#'.
-		mvwaddch(win, snakey[i].y, snakey[i].x, '#');
+
+		mvwaddch(win, snakey[i].y, snakey[i].x, ch);
 	}
 
 	int x = snakey[SNAKEY_LENGTH - 1].x;
@@ -180,13 +178,36 @@ int move_snakey(WINDOW *win, int direction, snakeypart snakey[])
 	snakey[SNAKEY_LENGTH - 1].x = x;
 	snakey[SNAKEY_LENGTH - 1].y = y;
 
-	mvwaddch(win, y, x, '#');
-
+	//mvwaddch(win, y, x, '#');
+	wmove(win, y, x);
 	box(win, 0, 0);
 
 	wrefresh(win);
 
 	return 0;
+}
+
+char nextSpartDir(snakeypart current, snakeypart next)
+{
+	int xdiff = current.x - next.x;
+	int ydiff = current.y - next.y;
+
+	if (xdiff < 0)
+	{
+		return '>';
+	}
+	else if (xdiff > 0){
+		return '<';
+	}
+
+	if (ydiff < 0){
+		return 'v';
+	}
+	else if (ydiff > 0){
+		return '^';
+	}
+
+	return '#';
 }
 
 
