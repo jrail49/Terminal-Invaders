@@ -2,9 +2,12 @@
 /*** Includes ***/
 #include <ncurses.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /*** Defines ***/
 #define TICKRATE 100
+#define TRUE 1
+#define FALSE 0
 
 /*** Globals ***/
 static int WORLD_WIDTH = 50;
@@ -23,9 +26,10 @@ typedef struct weapon{
 	int x;
 	int y;
 	char bulletChar;
-	int waitTime;
-	int currentWait;
+	struct weapon *nextBullet;
+	int active;
 } bullet;
+
 
 typedef struct cEnemy{
 	int x;
@@ -38,7 +42,8 @@ typedef struct user{
 	int x;
 	int y;
 	char ship;
-	bullet attacks[];
+	bullet *firstBullet;
+	bullet *lastBullet;
 } player;
 
 
@@ -49,6 +54,7 @@ void drawPlayer(WINDOW *win, player *p);
 void drawInvaders(WINDOW *win, commonEnemy invaders[]);
 void updateWorld(WINDOW *win, int userInput, player *p);
 void createEnemies(const int numberOfEnemies, commonEnemy *invaders);
+void fire(player *p);
 
 /**
 Function:	main
@@ -102,6 +108,8 @@ int main(int argc, char *argv[])
 	p1.x = WORLD_WIDTH/2;
 	p1.y = WORLD_HEIGHT - 2;
 	p1.ship = '#';
+	p1.firstBullet = 0;
+	p1.lastBullet = 0;
 		
 	int ship_command = DO_NOTHING;
 	while((input = getch()) != 'x'){
@@ -114,6 +122,8 @@ int main(int argc, char *argv[])
 				case KEY_RIGHT:
 					ship_command = RIGHT;
 					break;
+				case ' ':
+					ship_command = FIRE;
 				default:
 					break;
 			}
@@ -133,6 +143,32 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+void fire(player *p){
+
+	struct weapon *newbullet;
+	newbullet = malloc(sizeof(struct weapon));
+	newbullet->x = p->x;
+	newbullet->y = p->y-1;
+	newbullet->bulletChar = '*';
+	newbullet->active = TRUE;
+
+	// tell this bullet it is the last bullet
+	newbullet->nextBullet = 0;
+
+	if (p->firstBullet == 0){
+		//	If there are no other bullets currently being tracked, set 
+		//	this bullet to be the first and the last bullet.
+		p->firstBullet = newbullet;
+		p->lastBullet = newbullet;
+	}
+	else {
+		//	If there is another bullet being tracked, update the last
+		//	bullet to be this new bullet. 
+		p->lastBullet->nextBullet = newbullet;
+		p->lastBullet = newbullet;
+	}
+}
+
 int move_player(WINDOW *win, int userInput, player *p)
 {
 	switch (userInput){
@@ -143,6 +179,8 @@ int move_player(WINDOW *win, int userInput, player *p)
 			p->x + 1 == WORLD_WIDTH - 1 ? p->x = 1 : ++p->x;
 			break;
 		case FIRE:
+			fire(p);
+			break;
 		default:
 			break;
 	}
@@ -154,7 +192,39 @@ int move_player(WINDOW *win, int userInput, player *p)
 
 void drawPlayer(WINDOW *win, player *p)
 {
+	// move all of the bullets. 
+	if (p->firstBullet != 0)
+	{
+		
+		struct weapon *node;
+		struct weapon *freeThis;
+		node = p->firstBullet;
+		//	Free all the memory of bullets untill we find a bullet 
+		//	that is still active. 
+		while ((node->y <= 0)){
+			if (node->nextBullet == 0){
+				free(node);
+				p->firstBullet = 0;
+				break;
+			}
+			
+			p->firstBullet = node->nextBullet;
+			freeThis = node;
+			node = node->nextBullet;
+			free(freeThis);
+		}
+		
+		//	Update the remaining bullets;
+		while(node){
+			node->y -= 1; 
+			mvwaddch(win, node->y, node->x, node->bulletChar);
+			node = node->nextBullet;
+		}
+		
+	}
+
 	wmove(win, p->y, p->x);
+
 	//mvwaddch(win, p->y, p->x, p->ship);
 }
 
