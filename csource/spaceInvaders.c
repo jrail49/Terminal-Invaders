@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 	
 	//	Display title of applications in the top right hand corner 
 	//	with version number. 
-	printw("spaceInvaders v. 1.0 - Press ESC to quit.");
+	printw("spaceInvaders v. 1.0 - Press 'q' to quit.");
 
 	//	Refresh the original terminal
 	refresh();
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 	enemyFire->lastBullet = 0;
 		
 	int ship_command = DO_NOTHING;
-	while((input = getch()) != 'x'){
+	while((input = getch()) != 'q'){
 		updateWorld(world, ship_command, &p1);
 		if(input != ERR){
 			switch(input){
@@ -305,6 +305,45 @@ void invaderFire(int index){
 	
 }
 
+void move_invaders(WINDOW *win){
+	static const int speed = 2;
+	static int wait = 0;
+	static int moveX = -1;
+	static int moveY = 0;
+
+	// wait untill the ship can move.
+	if (wait++ < speed){
+		return;
+	}
+	else{
+		wait = 0;
+	}
+
+	// move the invaders
+	if (invaders[0].x == 1 && moveX == -1){
+		moveX = +1;	
+		for (int i = 0; i < numberOfEnemies; ++i){
+			invaders[i].y += 1;
+		}
+		return;
+	}
+	else if((invaders[numberOfEnemies-1].x == WORLD_WIDTH-2) && moveX == +1){
+		moveX = -1;
+		for (int i = 0; i < numberOfEnemies; ++i){
+			invaders[i].y += 1;
+		}
+		return;
+	}
+	else {
+		for (int i = 0; i < numberOfEnemies; ++i){
+			invaders[i].x += moveX;
+		}
+		return;
+	}
+
+	return;
+}
+
 void drawInvaders(WINDOW *win)
 {
 	int dead = -3;
@@ -394,6 +433,9 @@ void updateWorld(WINDOW *win, int userInput, player* p){
 			node = node->nextBullet;
 		}
 	}
+
+	// move the enemies;
+	move_invaders(win);
 
 	// draw enemies
 	drawInvaders(win);
