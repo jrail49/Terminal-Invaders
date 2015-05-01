@@ -51,15 +51,25 @@ int main(int argc, char *argv[])
 
     /*** NEW ***/
     initscr();
-    noecho();
-    cbreak();
-    timeout(TICKRATE);
-    keypad(stdscr, TRUE);
+    noecho();	/* 	Preven the terminal from printing user Input 	*/
+    cbreak();	/*	Disables line buggering and feeds input directly 
+    				to the program. This makes the character input 
+    				respond immediately and not wait untill a new 
+    				line is entered.	*/
+    timeout(TICKRATE);	/*	Sets and input delay in milliseconds for 
+    						stdscr which is applied during input with 
+    						getch() and sibling functions.  */
+    					/*	If there is not user input with in the 
+    						timer interval then getch() return swith 
+    						value ERR.	*/
+    keypad(stdscr, TRUE);	/*	Enables special character input such 
+    							as arrow keys.	*/
 
-    printw("PieceOfCakeSnake v. 1.0 - Press x to quit...");	// display text at top of screen.
-    /*** END OF NEW CODE ***/
+	//	display text at the current curser location. At time of start
+	//	up this is at 0,0 (the top left of the screen).
+    printw("PieceOfCakeSnake v. 1.0 - Press x to quit...");	
 
-    // Put the buffer on the screen.
+    //	Put the buffer on the screen.
     refresh();
  
  	// COLS and LINES are environment variables that hold the current
@@ -138,12 +148,14 @@ int main(int argc, char *argv[])
 // This entire function is all "NEW CODE".
 int move_snakey(WINDOW *win, int direction, snakeypart snakey[])
 {
-	// clear the window
+	// Clear child windows
 	wclear(win);
 
 	for (int i = 0; i < SNAKEY_LENGTH - 1; ++i){
 		snakey[i] = snakey[i + 1];
-		mvwaddch(win, snakey[i].y, snakey[i].x, '#');	// put a '#' in the win at location x,y
+		//	Move the curser to y,x in the window win and add the 
+		//	character '#'.
+		mvwaddch(win, snakey[i].y, snakey[i].x, '#');
 	}
 
 	int x = snakey[SNAKEY_LENGTH - 1].x;
