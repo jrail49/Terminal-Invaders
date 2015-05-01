@@ -150,7 +150,7 @@ int move_snakey(WINDOW *win, int direction, snakeypart snakey[])
 	int y = snakey[SNAKEY_LENGTH - 1].y;
 	switch (direction) {
 		case UP:
-			y - 1 == 0 ? WORLD_HEIGHT - 2 : --y;
+			y - 1 == 0 ? y = WORLD_HEIGHT - 2 : --y;
 			break;
 		case DOWN:
 			y + 1 == WORLD_HEIGHT - 1 ? y = 1 : ++y;
