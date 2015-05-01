@@ -192,19 +192,30 @@ char nextSpartDir(snakeypart current, snakeypart next)
 	int xdiff = current.x - next.x;
 	int ydiff = current.y - next.y;
 
-	if (xdiff < 0)
-	{
+	if (xdiff == -1){
 		return '>';
 	}
-	else if (xdiff > 0){
+	else if (xdiff == +1){
 		return '<';
 	}
+	else if (xdiff < -1){
+		return '<';
+	}
+	else if (xdiff > +1){
+		return '>';
+	}
 
-	if (ydiff < 0){
+	if (ydiff == -1){
 		return 'v';
 	}
-	else if (ydiff > 0){
+	else if (ydiff == +1){
 		return '^';
+	}
+	else if (ydiff < -1){
+		return '^';
+	}
+	else if (ydiff > +1){
+		return 'v';
 	}
 
 	return '#';
