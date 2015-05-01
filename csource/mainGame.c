@@ -149,10 +149,11 @@ int move_snakey(WINDOW *win, int direction, snakeypart snakey[])
 		// direction of next segment
 		char ch = nextSpartDir(snakey[i], snakey[i+1]);
 
+		// move the snake segment up one
 		snakey[i] = snakey[i + 1];
-		//	Move the curser to y,x in the window win and add the 
-		//	character '#'.
 
+		//	Move the curser to y,x in the window win and print the
+		//	snake segment.
 		mvwaddch(win, snakey[i].y, snakey[i].x, ch);
 	}
 
