@@ -53,12 +53,16 @@ typedef struct eFire{
 
 /*** Globals ***/
 static int WORLD_WIDTH = 50;
-static int WORLD_HEIGHT = 20;
-static int numberOfEnemies = 4;
+static int WORLD_HEIGHT = 30;
+static int numberOfEnemies = 5;
 static commonEnemy invaders[];
 static int once = 1;
 static alienFire *enemyFire;// = malloc(sizeof(struct weapon));
 static int updateGame = TRUE;
+static int hit = FALSE;
+static int state = 0;
+
+
 
 /*** Prototypes ***/
 int move_player(WINDOW *win, int userInput, player *p);
@@ -73,6 +77,7 @@ int playerGotHit(player *p);
 void loserScreen(WINDOW *win);
 void winnerScreen(WINDOW *win);
 void restartGame(player *p);
+
 
 /**
 Function:	main
@@ -101,15 +106,31 @@ int main(int argc, char *argv[])
 	//	Enable special characters
 	keypad(stdscr, TRUE);
 
-	
+	int input;
+
+	//	Get offset of game box inside of window
 	//	Display title of applications in the top right hand corner 
 	//	with version number. 
-	printw("spaceInvaders v. 1.0 - Press 'q' to quit.");
+	printw("spaceInvaders v. 1.0\nPress 'q' to quit, 'r' to restart\n");
+	
+	if (COLS < WORLD_WIDTH)
+	{
+		printw("Window is to thin, please make the window wider.\n");
+	}
+	else if (LINES < WORLD_HEIGHT)
+	{
+		printw("Window is to short, please make the window taller.\n");
+	}
+	else {
+		printw("'Prress Up' and 'Space' to fire");
+	}
+
+
+
 
 	//	Refresh the original terminal
 	refresh();
 
-	//	Get offset of game box inside of window
 	offsetx = (COLS - WORLD_WIDTH) / 2;
 	offsety = (LINES - WORLD_HEIGHT) / 2;
 
@@ -120,7 +141,6 @@ int main(int argc, char *argv[])
 				   offsetx);		// horizontal buffer
 	box(world, 0, 0);
 
-	int input;
 	//	draw the player
 	player p1;
 
@@ -133,7 +153,9 @@ int main(int argc, char *argv[])
 	int ship_command = DO_NOTHING;
 	while((input = getch()) != 'q'){	
 		if (input == 'r'){
+			wclear(world);
 			restartGame(&p1);
+			wrefresh(world);
 			continue;
 		}
 		// Clear child windows
@@ -178,6 +200,7 @@ int main(int argc, char *argv[])
 }
 
 void restartGame(player *p){
+
 	p->x = WORLD_WIDTH/2;
 	p->y = WORLD_HEIGHT - 2;
 	p->ship = '#';
@@ -200,10 +223,12 @@ void restartGame(player *p){
 	enemyFire->lastBullet = 0;
 	
 	createEnemies();
+	updateGame = TRUE;
+	hit = FALSE;
+	state = 0;
 }
 
 int gameOver(){
-	static int state = 0;
 	int boudycount = 0;
 
 	if (state != 0){
@@ -232,8 +257,8 @@ int gameOver(){
 void winnerScreen(WINDOW *win){
 	const char loserText[] = {'Y','o','u',' ','W','i','n','.'};
 	const int textLength = 8;
-	const int startX = (50/2 - textLength/2 -1);
-	const int startY = (20/2);
+	const int startX = (WORLD_WIDTH/2 - textLength/2 -1);
+	const int startY = (WORLD_HEIGHT/2);
 	static int currentChar = -1;
 
 	const int threashold = 3;
@@ -260,8 +285,8 @@ void winnerScreen(WINDOW *win){
 void loserScreen(WINDOW *win){
 	const char loserText[] = {'Y', 'o', 'u', ' ', 'L', 'o', 's','t','.'};
 	const int textLength = 9;
-	const int startX = (50/2 - textLength/2 -1);
-	const int startY = (20/2);
+	const int startX = (WORLD_WIDTH/2 - textLength/2 -1);
+	const int startY = (WORLD_HEIGHT/2);
 	static int currentChar = -1;
 	
 	const int threashold = 3;
@@ -285,7 +310,6 @@ void loserScreen(WINDOW *win){
 }
 
 int playerGotHit(player *p){
-	static int hit = FALSE;
 
 	if (hit){
 		return hit;
@@ -476,14 +500,14 @@ void invaderFire(int index)
 
 void move_invaders(WINDOW *win)
 {
-	static const int speed = 3;
+	static const int speed = 2;
 	static const int threashold = 3;
 	static int wait = 0;
 	static int moveX = -1;
 	static int moveY = 0;
 
 	// wait untill the ship can move.
-	if ((wait + speed) < threashold){
+	if ((wait = wait + speed) < threashold){
 		return;
 	}
 	else{
@@ -530,9 +554,17 @@ void drawInvaders(WINDOW *win)
 
 void updateInvadersShip(){
 	int dead = -3;
-	srand(time(NULL));
-	int r = rand() % numberOfEnemies;
-	
+	//srand(time(NULL));
+	static const int time = 3;
+	static int wait = 0;
+	static int r = -1;
+
+	if (wait++ > time){
+		r = rand() % numberOfEnemies;
+		wait = 0;
+	}
+		
+
 	for(int i = 0; i < numberOfEnemies; ++i){
 		if (invaders[i].health != INT_MIN){
 			if (invaders[i].health >= 2){
@@ -622,7 +654,7 @@ void updateWorld(WINDOW *win, int userInput, player* p){
 	// Check to see if the game is over. 
 	int over;
 	int winner = gameOver();
-	if (FALSE){//q(over = playerGotHit(p))){
+	if ((over = playerGotHit(p))){
 		loserScreen(win);
 	}
 	else if (winner == 1){
