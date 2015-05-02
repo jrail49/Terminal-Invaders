@@ -62,22 +62,24 @@ static int updateGame = TRUE;
 static int hit = FALSE;
 static int state = 0;
 
+static WINDOW *world;
+static int offsetx, offsety;
 
 
 /*** Prototypes ***/
-int move_player(WINDOW *win, int userInput, player *p);
-int updateInvaders(WINDOW *win, commonEnemy invaders[]);
-void drawPlayer(WINDOW *win, player *p);
-void drawInvaders(WINDOW *win);
-void updateWorld(WINDOW *win, int userInput, player *p);
+int move_player(int userInput, player *p);
+int updateInvaders(commonEnemy invaders[]);
+void drawPlayer(player *p);
+void drawInvaders();
+void updateWorld(int userInput, player *p);
 void createEnemies();
 void fire(player *p);
 int gameOver();
 int playerGotHit(player *p);
-void loserScreen(WINDOW *win);
-void winnerScreen(WINDOW *win);
+void loserScreen();
+void winnerScreen();
 void restartGame(player *p);
-
+void displayInfoText();
 
 /**
 Function:	main
@@ -90,7 +92,6 @@ Status:	Incomplete
 int main(int argc, char *argv[])
 {
 	// Local varables
-	WINDOW *world;
 	int offsetx, offsety;
 
 	//	Prepare the terminal for curses mode, allocates memory for 
@@ -108,22 +109,7 @@ int main(int argc, char *argv[])
 
 	int input;
 
-	//	Get offset of game box inside of window
-	//	Display title of applications in the top right hand corner 
-	//	with version number. 
-	printw("spaceInvaders v. 1.0\nPress 'q' to quit, 'r' to restart\n");
-	
-	if (COLS < WORLD_WIDTH)
-	{
-		printw("Window is to thin, please make the window wider.\n");
-	}
-	else if (LINES < WORLD_HEIGHT)
-	{
-		printw("Window is to short, please make the window taller.\n");
-	}
-	else {
-		printw("'Prress Up' and 'Space' to fire");
-	}
+	displayInfoText();
 
 
 
@@ -131,15 +117,6 @@ int main(int argc, char *argv[])
 	//	Refresh the original terminal
 	refresh();
 
-	offsetx = (COLS - WORLD_WIDTH) / 2;
-	offsety = (LINES - WORLD_HEIGHT) / 2;
-
-	//	Create world window
-	world = newwin(WORLD_HEIGHT,		// width
-				   WORLD_WIDTH,		// height
-				   offsety,			// vertical buffer
-				   offsetx);		// horizontal buffer
-	box(world, 0, 0);
 
 	//	draw the player
 	player p1;
@@ -162,7 +139,7 @@ int main(int argc, char *argv[])
 		wclear(world);
 
 		// draw everything
-		updateWorld(world, ship_command, &p1);
+		updateWorld(ship_command, &p1);
 		if(input != ERR){
 			switch(input){
 				case KEY_LEFT:
@@ -199,7 +176,42 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+void displayInfoText()
+{
+	clear();
+	//	Get offset of game box inside of window
+	//	Display title of applications in the top right hand corner 
+	//	with version number. 
+	printw("spaceInvaders v. 1.0\nPress 'q' to quit, 'r' to restart\n");
+	
+	if (COLS < WORLD_WIDTH)
+	{
+		printw("Window is to thin, please make the window wider.\n");
+	}
+	else if (LINES < WORLD_HEIGHT)
+	{
+		printw("Window is to short, please make the window taller.\n");
+	}
+	else {
+		printw("'Prress Up' and 'Space' to fire");
+	}
+	refresh();
+
+	offsetx = (COLS - WORLD_WIDTH) / 2;
+	offsety = (LINES - WORLD_HEIGHT) / 2;
+
+	//	Create world window
+	world = newwin(WORLD_HEIGHT,		// width
+				   WORLD_WIDTH,		// height
+				   offsety,			// vertical buffer
+				   offsetx);		// horizontal buffer
+	box(world, 0, 0);
+
+}
+
 void restartGame(player *p){
+
+	displayInfoText();
 
 	p->x = WORLD_WIDTH/2;
 	p->y = WORLD_HEIGHT - 2;
@@ -254,7 +266,7 @@ int gameOver(){
 	return state;
 }
 
-void winnerScreen(WINDOW *win){
+void winnerScreen(){
 	const char loserText[] = {'Y','o','u',' ','W','i','n','.'};
 	const int textLength = 8;
 	const int startX = (WORLD_WIDTH/2 - textLength/2 -1);
@@ -274,7 +286,7 @@ void winnerScreen(WINDOW *win){
 	
 	int i = 0;
 	for (i = 0; i < currentChar; ++i){
-		mvwaddch(win, startY, startX+i, loserText[i]);
+		mvwaddch(world, startY, startX+i, loserText[i]);
 	}
 
 	if (currentChar < textLength){
@@ -282,7 +294,7 @@ void winnerScreen(WINDOW *win){
 	}
 }
 
-void loserScreen(WINDOW *win){
+void loserScreen(){
 	const char loserText[] = {'Y', 'o', 'u', ' ', 'L', 'o', 's','t','.'};
 	const int textLength = 9;
 	const int startX = (WORLD_WIDTH/2 - textLength/2 -1);
@@ -301,7 +313,7 @@ void loserScreen(WINDOW *win){
 	}
 	int i = 0;
 	for (i = 0; i < currentChar; ++i){
-		mvwaddch(win, startY, startX+i, loserText[i]);
+		mvwaddch(world, startY, startX+i, loserText[i]);
 	}
 
 	if (currentChar < textLength){
@@ -360,7 +372,7 @@ void fire(player *p){
 	}
 }
 
-int move_player(WINDOW *win, int userInput, player *p)
+int move_player(int userInput, player *p)
 {
 	switch (userInput){
 		case LEFT:
@@ -378,7 +390,7 @@ int move_player(WINDOW *win, int userInput, player *p)
 	return 0;
 }
 
-void drawPlayerFire(WINDOW *win, player *p){
+void drawPlayerFire(player *p){
 	// move all of the bullets. 
 	if (p->firstBullet != 0)
 	{		
@@ -386,16 +398,16 @@ void drawPlayerFire(WINDOW *win, player *p){
 		node = p->firstBullet;
 		//	Update the remaining bullets;
 		while(node){
-			mvwaddch(win, node->y, node->x, node->bulletChar);
+			mvwaddch(world, node->y, node->x, node->bulletChar);
 			node = node->nextBullet;
 		}
 		
 	}
 }
 
-void drawPlayer(WINDOW *win, player *p)
+void drawPlayer(player *p)
 {
-	wmove(win, p->y, p->x);
+	wmove(world, p->y, p->x);
 }
 
 void updatePlayerFire(player *p)
@@ -430,7 +442,7 @@ void updatePlayerFire(player *p)
 	}
 }
 
-void updateEnemyFire(WINDOW *win){
+void updateEnemyFire(){
 	if (enemyFire->firstBullet != 0)
 	{	
 		struct weapon *node;
@@ -459,12 +471,12 @@ void updateEnemyFire(WINDOW *win){
 	}
 }
 
-void drawEnemyFire(WINDOW *win){
+void drawEnemyFire(){
 	if(enemyFire->firstBullet != 0){
 		struct weapon *node;
 		node = enemyFire->firstBullet;
 		while(node){
-			mvwaddch(win, node->y, node->x, node->bulletChar);
+			mvwaddch(world, node->y, node->x, node->bulletChar);
 			node = node->nextBullet;
 		}
 	}
@@ -472,9 +484,6 @@ void drawEnemyFire(WINDOW *win){
 
 void invaderFire(int index)
 {
-
-
-
 	struct weapon *newbullet;
 	newbullet = malloc(sizeof(struct weapon));
 	newbullet->x = invaders[index].x;
@@ -498,7 +507,7 @@ void invaderFire(int index)
 	}
 }
 
-void move_invaders(WINDOW *win)
+void move_invaders()
 {
 	static const int speed = 2;
 	static const int threashold = 3;
@@ -539,15 +548,15 @@ void move_invaders(WINDOW *win)
 	return;
 }
 
-void drawInvaders(WINDOW *win)
+void drawInvaders()
 {
 	for(int i = 0; i < numberOfEnemies; ++i){
 		if (invaders[i].health > 0){
-			mvwaddch(win, invaders[i].y, invaders[i].x, invaders[i].ship);
-			mvwaddch(win, invaders[i].y-1, invaders[i].x, '_');
+			mvwaddch(world, invaders[i].y, invaders[i].x, invaders[i].ship);
+			mvwaddch(world, invaders[i].y-1, invaders[i].x, '_');
 		}
 		else if (invaders[i].health != INT_MIN){
-			mvwaddch(win, invaders[i].y, invaders[i].x, invaders[i].ship);
+			mvwaddch(world, invaders[i].y, invaders[i].x, invaders[i].ship);
 		}
 	}
 }
@@ -621,17 +630,17 @@ void damageInvader(player *p){
 
 }
 
-void updateWorld(WINDOW *win, int userInput, player* p){	
+void updateWorld(int userInput, player* p){	
 
 	if (updateGame){
 		// damage enemies if hit
 		damageInvader(p);
 
 		// move the enemies;
-		move_invaders(win);
+		move_invaders();
 
 		// update enemy fire
-		updateEnemyFire(win);
+		updateEnemyFire();
 
 		// update player fire
 		updatePlayerFire(p);
@@ -640,31 +649,31 @@ void updateWorld(WINDOW *win, int userInput, player* p){
 		updateInvadersShip();
 
 		// update the players location
-		move_player(win, userInput, p);
+		move_player(userInput, p);
 
 	}
 
 	// draw enemies
-	drawInvaders(win);
+	drawInvaders();
 	
 	// draw bullets
-	drawEnemyFire(win);
-	drawPlayerFire(win, p);
+	drawEnemyFire();
+	drawPlayerFire(p);
 
 	// Check to see if the game is over. 
 	int over;
 	int winner = gameOver();
 	if ((over = playerGotHit(p))){
-		loserScreen(win);
+		loserScreen();
 	}
 	else if (winner == 1){
-		winnerScreen(win);
+		winnerScreen();
 	}
 	else if (winner == -1){
-		loserScreen(win);
+		loserScreen();
 	}
 
-	drawPlayer(win, p);
+	drawPlayer(p);
 
 }
 
