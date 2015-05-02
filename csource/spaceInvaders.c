@@ -54,9 +54,8 @@ typedef struct eFire{
 /*** Globals ***/
 static int WORLD_WIDTH = 50;
 static int WORLD_HEIGHT = 30;
-static int numberOfEnemies = 5;
-static commonEnemy invaders[];
-static int once = 1;
+#define numberOfEnemies 5
+static commonEnemy invaders[numberOfEnemies];
 static alienFire *enemyFire;// = malloc(sizeof(struct weapon));
 static int updateGame = TRUE;
 static int hit = FALSE;
@@ -91,9 +90,6 @@ Status:	Incomplete
 */
 int main(int argc, char *argv[])
 {
-	// Local varables
-	int offsetx, offsety;
-
 	//	Prepare the terminal for curses mode, allocates memory for 
 	//	stdcsr
 	initscr();
@@ -513,7 +509,6 @@ void move_invaders()
 	static const int threashold = 3;
 	static int wait = 0;
 	static int moveX = -1;
-	static int moveY = 0;
 
 	// wait untill the ship can move.
 	if ((wait = wait + speed) < threashold){
