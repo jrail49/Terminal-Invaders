@@ -66,12 +66,13 @@ int updateInvaders(WINDOW *win, commonEnemy invaders[]);
 void drawPlayer(WINDOW *win, player *p);
 void drawInvaders(WINDOW *win);
 void updateWorld(WINDOW *win, int userInput, player *p);
-void createEnemies(const int numberOfEnemies);
+void createEnemies();
 void fire(player *p);
 int gameOver();
 int playerGotHit(player *p);
 void loserScreen(WINDOW *win);
 void winnerScreen(WINDOW *win);
+void restartGame(player *p);
 
 /**
 Function:	main
@@ -122,18 +123,19 @@ int main(int argc, char *argv[])
 	int input;
 	//	draw the player
 	player p1;
-	p1.x = WORLD_WIDTH/2;
-	p1.y = WORLD_HEIGHT - 2;
-	p1.ship = '#';
-	p1.firstBullet = 0;
-	p1.lastBullet = 0;
 
 	enemyFire = malloc(sizeof(struct eFire));
 	enemyFire->firstBullet = 0;
 	enemyFire->lastBullet = 0;
+
+	restartGame(&p1);
 		
 	int ship_command = DO_NOTHING;
 	while((input = getch()) != 'q'){	
+		if (input == 'r'){
+			restartGame(&p1);
+			continue;
+		}
 		// Clear child windows
 		wclear(world);
 
@@ -173,6 +175,31 @@ int main(int argc, char *argv[])
 	endwin();
 
 	return 0;
+}
+
+void restartGame(player *p){
+	p->x = WORLD_WIDTH/2;
+	p->y = WORLD_HEIGHT - 2;
+	p->ship = '#';
+	p->firstBullet = 0;
+	p->lastBullet = 0;
+
+	struct weapon *node;
+	struct weapon *node2;
+	struct weapon *freeThis;
+	node = enemyFire->firstBullet;
+	node2 = enemyFire->lastBullet;
+	while(node){
+		freeThis = node;
+		node = node->nextBullet;
+		free(freeThis);
+	}
+
+
+	enemyFire->firstBullet = 0;
+	enemyFire->lastBullet = 0;
+	
+	createEnemies();
 }
 
 int gameOver(){
@@ -432,10 +459,6 @@ void invaderFire(int index)
 	newbullet->active = TRUE;
 
 	newbullet->nextBullet = 0;
-
-
-	//enemyFire->firstBullet = newbullet;
-	
 	
 	if (enemyFire->firstBullet == 0){
 		//	If there are no other bullets currently being tracked, set 
@@ -453,7 +476,7 @@ void invaderFire(int index)
 
 void move_invaders(WINDOW *win)
 {
-	static const int speed = 0;
+	static const int speed = 3;
 	static const int threashold = 3;
 	static int wait = 0;
 	static int moveX = -1;
@@ -544,24 +567,6 @@ void updateInvadersShip(){
 	}
 }
 
-void updateInvaderCharAtIndex(int index){
-	if (invaders[index].health >= 2){
-		invaders[index].ship = 'V';
-	}
-	else if (invaders[index].health == 1){
-		invaders[index].ship = 'v';
-	}
-	/*else if (invaders[index].health == 0){
-		invaders[index].ship = ' ';
-	}*/
-	else if (invaders[index].health == INT_MIN){
-		invaders[index].ship = ' ';
-	}
-	else {
-		invaders[index].ship = '?';	
-	}
-}
-
 void damageInvader(player *p){
 
 	struct weapon *node;
@@ -585,10 +590,6 @@ void damageInvader(player *p){
 }
 
 void updateWorld(WINDOW *win, int userInput, player* p){	
-	if (once){
-		createEnemies(numberOfEnemies);
-		once = 0;
-	}
 
 	if (updateGame){
 		// damage enemies if hit
@@ -620,18 +621,22 @@ void updateWorld(WINDOW *win, int userInput, player* p){
 
 	// Check to see if the game is over. 
 	int over;
+	int winner = gameOver();
 	if (FALSE){//q(over = playerGotHit(p))){
 		loserScreen(win);
 	}
-	else if (gameOver() != 0){
+	else if (winner == 1){
 		winnerScreen(win);
+	}
+	else if (winner == -1){
+		loserScreen(win);
 	}
 
 	drawPlayer(win, p);
 
 }
 
-void createEnemies(const int numberOfEnemies){
+void createEnemies(){
 	//commonEnemy invaders[numberOfEnemies];
 
 	int xbuf = WORLD_WIDTH/(numberOfEnemies+1);
