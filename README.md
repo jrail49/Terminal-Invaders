@@ -1,5 +1,5 @@
 # Extra Credit
-###About
+### About
 I will be making a game for extra credit.
 I plan on making a space invaders game, 
 but i will be following a tutorial on how 
